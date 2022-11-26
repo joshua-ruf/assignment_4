@@ -1,13 +1,4 @@
-##### TODO:
-
-1. come up with two interesting MDPs, explain why interesting; keep it simple, max one grid world; vary the number of states
-2. solve each MDP with both value iteration and policy iteration;
-3. describe iterations and time?
-3. describe how convergence is measured?
-4. do they reach the same conclusions?
-5. how did the number of states affect it all?
-6. solve the two MDPs with a different RL approach... one that is not model-based
-7. did the new approach perform better than the model based approaches?
+##### CS 7641 - Assignment 4 - Joshua Ruf (jruf6)
 
 #### MDP Problems
 
@@ -87,12 +78,43 @@ Interestingly, in this problem there is a setup that results in value iteration 
 
 #### Another RL Approach
 
+Enter Q-Learning, a "model-free" RL approach. That might seem strange in this context since we do have access to the model (the transition and reward matrices) but we can proceed as if this were not the case. Based on my understanding, in value iteration and policy iteration the agent receives a full description of the "world" and builds the solution on top of that information. Meanwhile, for Q-learning, the agent need not the full specification of transitions and rewards, and instead only accesses that information on an "as-needed" basis. This process would work something like this, the agent, in its exploration, decides to take action *a* to go from state *s* to state *s'*. Only at this point does it access the reward associated with this decision.
+
+The result actually has pretty substantial implications for our ability to solve complicated problems. As I've already experienced, a fully specified MDP problem with 4096 states and 32 actions creates a transition matrix taking up 8GB of RAM (same for the reward matrix). As such, solving the MDP process without first defining all the information in full could allow us to solve larger problems, provided the time complexity is manageable. Thinking about why this approach would work, I suppose with value and policy iteration, we're potentially providing the agent with useless information: why should it care about a specific state-action-state pair if it occurs with zero probability?
+
 ##### Problem 1
 
-TBD
+Solving the forest management MDP with Q-learning, we see a roughly linear relationship with time, at least for relatively few number of states. Now, there is a caveat, [this particular implementation of Q-learning](https://pymdptoolbox.readthedocs.io/en/latest/api/mdp.html#mdptoolbox.mdp.QLearning) does not support early stopping criteria and as such each MDP setup uses the same 100,000 iterations. Approaches could include something as simple as stop when the Q table stops improving greater than some threshold, a similar approach to value iteration. Interestingly, the discount factor does not play into how much time is spent, likely because of the model-free approach.
+
+![](plots/Problem_1_QL_time_by_states.png)
+
+With that, does Q-learning perform as well as value iteration? In short, no not exactly. The figure below plots the difference between the policy function from value iteration and Q-learning, expressed as the percentage of the policy function that is the same between value iteration and Q-learning. As seen, for a low number of states the policies are identical, but as the number of states increases the policies start to diverge, ultimately converging at about 50% similarity.
+
+![](plots/Problem_1_QL_policy_agreement_with_VI.png)
 
 ##### Problem 2
 
-TBD
+The second problem involves the large randomly generated transition and reward matrices. Q-learning took MUCH longer to solve these problems, however the time required is linear in the number of states unlike value iteration and policy iteration. Time increases faster for problems with more actions, but still it seems like Q-learning can handle much larger problems without going exponential.
+
+![](plots/Problem_2_QL_time_by_states.png)
+
+In this problem, the policy functions do not match the value iteration solution very closely. This is shown in the following figure that calculates the percentage agreement in the two policy functions at varying levels of states and actions. Like in the previous example, the agreement declines as the number states or actions increases. For a large number of actions, the agreement is not very close at all.
+
+![](plots/Problem_2_QL_policy_agreement_with_VI.png)
+
+The question then becomes: has Q-learning been able to find a solution better than value and policy iteration? Well, in these situations explored, no. We have provided these solvers fully specified MDPs and given that they should converge to a global optimum given enough iterations so as to be able to cover all the states. In situations where we did not have a fully specified MDP then Q-learning might serve as an improvement since it could uncover actions that the designer had not considered.
 
 #### Conclusion
+
+Overall, we've explored value iteration and policy iteration under two different MDP setups, and compared these results to Q-learning to offer a model-free approach. This final figure compares the simulated utility values, starting from a random state and following the optimal policy for a MDP with 2048 states and 16 actions. The orange area represents the distribution of scores for value iteration solution while the blue area represents the distribution of scores for Q-learning. Clearly value iteration outperforms Q-learning on average, however I expect this gap to decrease as the number of Q-learning iterations increases.
+
+![](plots/Problem_2_QL_vs_VI_Utility_1000_simulations.png)
+
+##### To sumarize:
+
+1. Value and policy iteration achieve similar conclusions, however value iteration does not scale as well as policy iteration as the number of states and actions grows.
+2. Discount rate plays a large role in value and policy iteration, as the future needs to be taken more or less seriously. Conversely, Q-learning seems more or less invariant to the discount rate in the situations tried, perhaps because of its unique sampling approach.
+3. solving a large MDP takes an incredible amount of memory and computation, so both value and policy iteration can be insufficient to solve complicated problems
+4. Q-learning, being model free is less bound by space constraints since the problem does not need to be defined completely, however solutions require a large number of iterations and these are time consuming. That said, the resource complexity, at least for the values tried in this assignment, is somewhat linear as opposed to exponential.
+5. In going with a model free approach however, results are worse as determined by a simulation analysis. However, model tuning and more computation could likely close this gap.
+
