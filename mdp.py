@@ -93,7 +93,7 @@ def run_iteration(P, R, solver=mdptoolbox.mdp.ValueIteration, **kwargs):
         **{f"kwargs__{v}": k for v, k in kwargs.items()},
     }
 
-    
+
 
 # +
 ### params
@@ -486,8 +486,8 @@ for solver in (mdptoolbox.mdp.QLearning, mdptoolbox.mdp.ValueIteration, mdptoolb
     
     del mod
     gc.collect()
-    
-    
+
+
 # -
 
 comp = []
@@ -508,5 +508,53 @@ plot_and_save('Problem 2 QL vs VI Utility 1000 simulations',
              ylabel=None)
 
 
+
+# +
+########### compare number of iterations
+
+# +
+states = 2048
+actions = 16
+discount = 0.95
+
+np.random.seed(0)
+P, R = mdptoolbox.example.rand(states, actions)
+
+policies = {}
+for n_iter in 10**np.arange(4,7):
+    
+    params = {
+        'discount': discount,
+        'n_iter': n_iter,
+    }
+    
+    mod = mdptoolbox.mdp.QLearning(P, R, **params)
+    mod.run()
+    
+    policies[n_iter] = mod.policy
+    
+    del mod
+    gc.collect()
+# -
+
+comp = []
+for seed in range(1000):
+    for k, v in policies.items():
+        comp.append({
+            'seed': seed,
+            'solver': 'QLearning',
+            'n_iter': k,
+            'score': simulate(P, R, policy=v, discount=discount, seed=seed)
+        })
+
+# +
+comp_df = pd.DataFrame(comp)
+
+plot_and_save('Problem 2 QL simulated utility by number of iterations',
+              data=comp_df,
+              kind=sns.histplot,
+              x='score', hue='n_iter', element='step', stat='percent',
+             ylabel=None)
+# -
 
 
